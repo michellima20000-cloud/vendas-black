@@ -22,8 +22,8 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Storage local de uploads
-uploads/
+# Storage local de uploads (Multer temporário)
+/tmp-uploads/
 
 # Editor / OS
 .DS_Store

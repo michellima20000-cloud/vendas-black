@@ -23,7 +23,9 @@ export class StoresService {
         categories: true,
       },
     });
-    if (!store) throw new NotFoundException('Loja não encontrada');
+    if (!store || !store.isActive) {
+      throw new NotFoundException('Loja não encontrada');
+    }
     return store;
   }
 

@@ -6,6 +6,8 @@ import {
 import { PrismaService } from '../database/prisma.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { CreateCategoryDto } from './dto/create-category.dto';
+import { UpdateCategoryDto } from './dto/update-category.dto';
 
 @Injectable()
 export class ProductsService {
@@ -44,7 +46,9 @@ export class ProductsService {
       where: { id },
       include: { category: true, variations: true },
     });
-    if (!product) throw new NotFoundException('Produto não encontrado');
+    if (!product || !product.isActive) {
+      throw new NotFoundException('Produto não encontrado');
+    }
     return product;
   }
 
@@ -150,7 +154,95 @@ export class ProductsService {
 
   async findMyCategories(ownerId: string) {
     const store = await this.resolveOwnedStore(ownerId);
-    return this.prisma.category.findMany({ where: { storeId: store.id } });
+    return this.prisma.category.findMany({
+      where: { storeId: store.id },
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  async createCategory(ownerId: string, dto: CreateCategoryDto) {
+    const store = await this.resolveOwnedStore(ownerId);
+    const baseSlug = this.slugify(dto.slug ?? dto.name);
+    if (!baseSlug) {
+      throw new BadRequestException('Nome de categoria inválido');
+    }
+
+    return this.prisma.category.create({
+      data: {
+        storeId: store.id,
+        name: dto.name.trim(),
+        slug: await this.uniqueCategorySlug(store.id, baseSlug),
+      },
+    });
+  }
+
+  async updateCategory(ownerId: string, id: string, dto: UpdateCategoryDto) {
+    const store = await this.resolveOwnedStore(ownerId);
+    const category = await this.prisma.category.findUnique({
+      where: { id },
+      select: { id: true, storeId: true },
+    });
+    if (!category || category.storeId !== store.id) {
+      throw new NotFoundException('Categoria não encontrada');
+    }
+
+    const data: { name?: string; slug?: string } = {};
+    if (dto.name !== undefined) data.name = dto.name.trim();
+    if (dto.slug !== undefined) {
+      const baseSlug = this.slugify(dto.slug);
+      if (!baseSlug) {
+        throw new BadRequestException('Slug de categoria inválido');
+      }
+      data.slug = await this.uniqueCategorySlug(store.id, baseSlug, id);
+    }
+    if (Object.keys(data).length === 0) {
+      throw new BadRequestException('Nenhum campo da categoria foi informado');
+    }
+
+    return this.prisma.category.update({ where: { id }, data });
+  }
+
+  async removeCategory(ownerId: string, id: string) {
+    const store = await this.resolveOwnedStore(ownerId);
+    const category = await this.prisma.category.findUnique({
+      where: { id },
+      select: { id: true, storeId: true },
+    });
+    if (!category || category.storeId !== store.id) {
+      throw new NotFoundException('Categoria não encontrada');
+    }
+
+    // Products keep existing with categoryId = null (SetNull on the relation).
+    return this.prisma.category.delete({ where: { id } });
+  }
+
+  private async uniqueCategorySlug(
+    storeId: string,
+    baseSlug: string,
+    ignoreId?: string,
+  ): Promise<string> {
+    let slug = baseSlug;
+    let suffix = 2;
+
+    while (true) {
+      const existing = await this.prisma.category.findUnique({
+        where: { storeId_slug: { storeId, slug } },
+        select: { id: true },
+      });
+      if (!existing || existing.id === ignoreId) return slug;
+      slug = `${baseSlug}-${suffix}`;
+      suffix += 1;
+    }
+  }
+
+  private slugify(value: string): string {
+    return value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
   }
 
   private async resolveOwnedStore(ownerId: string) {

@@ -23,6 +23,9 @@ describe('ProductsService', () => {
       category: {
         findUnique: jest.fn(),
         findMany: jest.fn(),
+        create: jest.fn(),
+        update: jest.fn(),
+        delete: jest.fn(),
       },
     };
     service = new ProductsService(prisma);
@@ -120,6 +123,7 @@ describe('ProductsService', () => {
     });
     expect(prisma.category.findMany).toHaveBeenCalledWith({
       where: { storeId: 'store-1' },
+      orderBy: { name: 'asc' },
     });
   });
 
@@ -150,5 +154,69 @@ describe('ProductsService', () => {
       limit: 10,
       pages: 0,
     });
+  });
+
+  it('does not expose an inactive product publicly', async () => {
+    prisma.product.findUnique.mockResolvedValue({
+      id: 'product-1',
+      isActive: false,
+    });
+
+    await expect(service.findOne('product-1')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+  });
+
+  it('creates a category with a unique slug generated from the name', async () => {
+    prisma.store.findUnique.mockResolvedValue({
+      id: 'store-1',
+      ownerId: 'owner-1',
+    });
+    prisma.category.findUnique
+      .mockResolvedValueOnce({ id: 'category-existing' })
+      .mockResolvedValueOnce(null);
+    prisma.category.create.mockResolvedValue({ id: 'category-1' });
+
+    await service.createCategory('owner-1', { name: 'Cólares de Pérola' });
+
+    expect(prisma.category.create).toHaveBeenCalledWith({
+      data: {
+        storeId: 'store-1',
+        name: 'Cólares de Pérola',
+        slug: 'colares-de-perola-2',
+      },
+    });
+  });
+
+  it('does not update a category owned by another store', async () => {
+    prisma.store.findUnique.mockResolvedValue({
+      id: 'store-1',
+      ownerId: 'owner-1',
+    });
+    prisma.category.findUnique.mockResolvedValue({
+      id: 'category-2',
+      storeId: 'store-2',
+    });
+
+    await expect(
+      service.updateCategory('owner-1', 'category-2', { name: 'Alterada' }),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(prisma.category.update).not.toHaveBeenCalled();
+  });
+
+  it('does not remove a category owned by another store', async () => {
+    prisma.store.findUnique.mockResolvedValue({
+      id: 'store-1',
+      ownerId: 'owner-1',
+    });
+    prisma.category.findUnique.mockResolvedValue({
+      id: 'category-2',
+      storeId: 'store-2',
+    });
+
+    await expect(
+      service.removeCategory('owner-1', 'category-2'),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(prisma.category.delete).not.toHaveBeenCalled();
   });
 });

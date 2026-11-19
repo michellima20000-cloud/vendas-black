@@ -48,6 +48,9 @@ Use o `docker-compose.yml` em `/infra` para subir tudo.
 | `POST` | `/api/v1/auth/register` | Cadastro |
 | `GET` | `/api/v1/stores/public/:slug` | Loja pública |
 | `GET` | `/api/v1/products/public/:storeSlug` | Produtos |
+| `GET` | `/api/v1/products/mine/categories` | Categorias da minha loja |
+| `POST` | `/api/v1/products/mine/categories` | Criar categoria |
+| `POST` | `/api/v1/uploads/images` | Upload de até 20 imagens |
 | `POST` | `/api/v1/orders` | Criar pedido |
 
 ## 🔐 Variáveis de ambiente

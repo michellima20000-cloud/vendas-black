@@ -20,6 +20,8 @@ import { Role } from '@prisma/client';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { CreateCategoryDto } from './dto/create-category.dto';
+import { UpdateCategoryDto } from './dto/update-category.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -78,6 +80,37 @@ export class ProductsController {
   @ApiOperation({ summary: 'Categorias da minha loja' })
   async getMyCategories(@Request() req) {
     return this.productsService.findMyCategories(req.user.id);
+  }
+
+  @Post('mine/categories')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.STORE_OWNER)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Criar categoria na minha loja' })
+  async createCategory(@Request() req, @Body() dto: CreateCategoryDto) {
+    return this.productsService.createCategory(req.user.id, dto);
+  }
+
+  @Put('mine/categories/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.STORE_OWNER)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Atualizar categoria da minha loja' })
+  async updateCategory(
+    @Request() req,
+    @Param('id') id: string,
+    @Body() dto: UpdateCategoryDto,
+  ) {
+    return this.productsService.updateCategory(req.user.id, id, dto);
+  }
+
+  @Delete('mine/categories/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.STORE_OWNER)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Remover categoria da minha loja' })
+  async removeCategory(@Request() req, @Param('id') id: string) {
+    return this.productsService.removeCategory(req.user.id, id);
   }
 
   @Get(':id')
