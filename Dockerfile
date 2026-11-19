@@ -24,6 +24,6 @@ COPY package*.json ./
 
 EXPOSE 3001
 
-# Migrations run on every boot (idempotent). If they fail, the API still
-# starts so /api/v1/health/live can respond and the error appears in logs.
-CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy || echo 'AVISO: migrate deploy falhou'; node dist/main"]
+# Migrations run on every boot (idempotent), but with a hard time limit so a
+# slow/unreachable database can never block the HTTP server from starting.
+CMD ["sh", "-c", "timeout 60 ./node_modules/.bin/prisma migrate deploy || echo 'AVISO: migrate deploy falhou ou expirou'; exec node dist/main"]
