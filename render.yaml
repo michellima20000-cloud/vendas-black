@@ -1,0 +1,42 @@
+databases:
+  - name: vendas-black-db
+    databaseName: vendas_black
+    user: vendas
+    plan: free
+
+services:
+  - type: web
+    name: vendas-black
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/v1/health/live
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: vendas-black-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      # URL do front-end publicado (aceita lista separada por vírgulas).
+      - key: FRONTEND_URL
+        sync: false
+      # Storage S3-compatible (MinIO, Cloudflare R2, Backblaze B2...).
+      # Sem essas variáveis a API sobe, mas o upload de imagens fica indisponível.
+      - key: MINIO_ENDPOINT
+        sync: false
+      - key: MINIO_PORT
+        sync: false
+      - key: MINIO_USE_SSL
+        sync: false
+      - key: MINIO_ACCESS_KEY
+        sync: false
+      - key: MINIO_SECRET_KEY
+        sync: false
+      - key: MINIO_BUCKET
+        value: vendas-uploads
+      - key: MINIO_PUBLIC_URL
+        sync: false

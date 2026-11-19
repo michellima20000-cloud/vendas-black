@@ -39,6 +39,30 @@ npm run start:dev
 ## 🐳 Docker Compose (infra completa)
 Use o `docker-compose.yml` em `/infra` para subir tudo.
 
+## ☁️ Deploy no Render
+
+O repositório já tem `render.yaml` (Blueprint) e `Dockerfile` prontos.
+
+**Via Blueprint (recomendado):**
+1. No Render, escolha **New → Blueprint** e aponte para este repositório.
+2. Preencha `FRONTEND_URL` com a URL do front publicado (ex.: `https://vendas-front.onrender.com`).
+3. Preencha as variáveis `MINIO_*` se for usar upload de imagens (MinIO, Cloudflare R2, Backblaze B2 etc.). Sem elas a API sobe, mas o upload falha.
+4. O health check deve ser `GET /api/v1/health/live`.
+
+**Serviço manual (Docker):**
+- Environment: `Docker`
+- Dockerfile: `./Dockerfile`
+- Health Check Path: `/api/v1/health/live`
+- Variáveis mínimas: `DATABASE_URL`, `JWT_SECRET`, `FRONTEND_URL`
+- As migrations rodam automaticamente no start do container (`prisma migrate deploy`).
+
+**Serviço manual (Node):**
+- Build: `npm ci && npx prisma generate && npm run build`
+- Start: `npm run start:deploy` (roda as migrations antes de subir)
+- Node 20+
+
+> No plano free o serviço hiberna após inatividade; a primeira requisição pode levar ~50s.
+
 ## 🔗 Endpoints principais
 | Método | Rota | Descrição |
 |--------|------|-----------|

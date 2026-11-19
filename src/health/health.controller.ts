@@ -1,5 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { HealthCheck, HealthCheckService, PrismaHealthIndicator } from '@nestjs/terminus';
 import { PrismaService } from '../database/prisma.service';
 
@@ -11,6 +11,12 @@ export class HealthController {
     private prismaHealth: PrismaHealthIndicator,
     private prisma: PrismaService,
   ) {}
+
+  @Get('live')
+  @ApiOperation({ summary: 'Liveness: o processo está no ar' })
+  live() {
+    return { status: 'ok', timestamp: new Date().toISOString() };
+  }
 
   @Get()
   @HealthCheck()

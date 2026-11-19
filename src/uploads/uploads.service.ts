@@ -35,26 +35,18 @@ export class UploadsService implements OnModuleInit {
   }
 
   async onModuleInit() {
-    try {
-      const exists = await this.minioClient.bucketExists(this.bucket);
-      if (exists) return;
+    let timer: NodeJS.Timeout | undefined;
 
-      await this.minioClient.makeBucket(this.bucket);
-      await this.minioClient.setBucketPolicy(
-        this.bucket,
-        JSON.stringify({
-          Version: '2012-10-17',
-          Statement: [
-            {
-              Effect: 'Allow',
-              Principal: { AWS: ['*'] },
-              Action: ['s3:GetObject'],
-              Resource: [`arn:aws:s3:::${this.bucket}/*`],
-            },
-          ],
+    try {
+      await Promise.race([
+        this.ensureBucket(),
+        new Promise((_, reject) => {
+          timer = setTimeout(
+            () => reject(new Error('MinIO connection timed out')),
+            5_000,
+          );
         }),
-      );
-      this.logger.log(`Bucket "${this.bucket}" criado`);
+      ]);
     } catch (error) {
       // MinIO may be unavailable during boot; uploads will surface the error.
       this.logger.warn(
@@ -62,7 +54,31 @@ export class UploadsService implements OnModuleInit {
           error instanceof Error ? error.message : error
         }`,
       );
+    } finally {
+      if (timer) clearTimeout(timer);
     }
+  }
+
+  private async ensureBucket() {
+    const exists = await this.minioClient.bucketExists(this.bucket);
+    if (exists) return;
+
+    await this.minioClient.makeBucket(this.bucket);
+    await this.minioClient.setBucketPolicy(
+      this.bucket,
+      JSON.stringify({
+        Version: '2012-10-17',
+        Statement: [
+          {
+            Effect: 'Allow',
+            Principal: { AWS: ['*'] },
+            Action: ['s3:GetObject'],
+            Resource: [`arn:aws:s3:::${this.bucket}/*`],
+          },
+        ],
+      }),
+    );
+    this.logger.log(`Bucket "${this.bucket}" criado`);
   }
 
   async uploadFile(

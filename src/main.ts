@@ -7,7 +7,7 @@ import helmet from 'helmet';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { cors: true });
+  const app = await NestFactory.create(AppModule);
 
   const config = app.get(ConfigService);
   const port = config.get<number>('PORT', 3001);
@@ -29,9 +29,24 @@ async function bootstrap() {
     }),
   );
 
-  // CORS
+  // CORS: aceita uma lista separada por vírgulas em FRONTEND_URL.
+  const allowedOrigins = config
+    .get<string>('FRONTEND_URL', 'http://localhost:3000')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
   app.enableCors({
-    origin: config.get('FRONTEND_URL', 'http://localhost:3000'),
+    origin: (origin, callback) => {
+      if (
+        !origin ||
+        allowedOrigins.includes('*') ||
+        allowedOrigins.includes(origin)
+      ) {
+        return callback(null, true);
+      }
+      return callback(new Error(`Origem não permitida pelo CORS: ${origin}`));
+    },
     credentials: true,
   });
 
