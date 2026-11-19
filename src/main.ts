@@ -69,9 +69,12 @@ async function bootstrap() {
     swaggerOptions: { persistAuthorization: true },
   });
 
-  await app.listen(port);
-  console.log(`🚀 API rodando em http://localhost:${port}/api/v1`);
+  await app.listen(port, '0.0.0.0');
+  console.log(`🚀 API rodando em http://localhost:${port}/api/v1 (PORT=${port})`);
   console.log(`📚 Swagger em http://localhost:${port}/api/v1/docs`);
 }
 
-bootstrap();
+bootstrap().catch((error) => {
+  console.error('❌ Falha ao iniciar a API:', error);
+  process.exit(1);
+});
