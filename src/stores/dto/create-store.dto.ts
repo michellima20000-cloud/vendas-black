@@ -6,6 +6,7 @@ import {
   Length,
   Matches,
   Max,
+  MaxLength,
   Min,
   MinLength,
 } from 'class-validator';
@@ -28,31 +29,31 @@ export class CreateStoreDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  @Length(1, 1000)
+  @MaxLength(1000)
   description?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  @Length(1, 10000)
+  @MaxLength(10000)
   about?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  @Length(1, 30)
+  @MaxLength(30)
   whatsapp?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  @Length(1, 100)
+  @MaxLength(100)
   instagram?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  @Length(1, 64)
+  @MaxLength(64)
   couponCode?: string;
 
   @ApiPropertyOptional({ description: 'Valor monetário fixo do desconto do cupom' })
