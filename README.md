@@ -41,9 +41,28 @@ Use o `docker-compose.yml` em `/infra` para subir tudo.
 
 ## ☁️ Deploy no Render
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/michellima20000-cloud/vendas-black)
+
 O repositório já tem `render.yaml` (Blueprint) e `Dockerfile` prontos.
 
-**Via Blueprint (recomendado):**
+### Opção 1 — Script (mais rápido)
+
+Precisa de uma API Key do Render: https://dashboard.render.com/u/settings#api-keys
+
+```powershell
+$env:RENDER_API_KEY = "rnd_xxxxxxxx"
+
+# Cria Postgres + Web Service (Docker) e dispara o deploy.
+.\scripts\deploy-render.ps1 -FrontendUrl "https://vendas-front.onrender.com" -Wait
+```
+
+O script é idempotente: se o banco/serviço já existirem, ele reaproveita, atualiza
+as variáveis e redeploya. Ele configura `NODE_ENV`, `JWT_SECRET`, `FRONTEND_URL`
+e `DATABASE_URL` automaticamente. Para upload de imagens, defina as variáveis
+`MINIO_*` no ambiente antes de rodar (veja `.env.example`).
+
+### Opção 2 — Blueprint (dashboard)
+
 1. No Render, escolha **New → Blueprint** e aponte para este repositório.
 2. Preencha `FRONTEND_URL` com a URL do front publicado (ex.: `https://vendas-front.onrender.com`).
 3. Preencha as variáveis `MINIO_*` se for usar upload de imagens (MinIO, Cloudflare R2, Backblaze B2 etc.). Sem elas a API sobe, mas o upload falha.
@@ -61,7 +80,23 @@ O repositório já tem `render.yaml` (Blueprint) e `Dockerfile` prontos.
 - Start: `npm run start:deploy` (roda as migrations antes de subir)
 - Node 20+
 
-> No plano free o serviço hiberna após inatividade; a primeira requisição pode levar ~50s.
+### Primeiro acesso depois do deploy
+
+O banco começa vazio. Crie a primeira loja pela API:
+
+1. `POST /api/v1/auth/register` → devolve o token (role `CUSTOMER`).
+2. `POST /api/v1/stores` com `Authorization: Bearer <token>` e o corpo
+   `{ "slug": "minha-loja", "name": "Minha Loja" }` → o usuário vira `STORE_OWNER`.
+3. A loja pública fica em `/api/v1/stores/public/minha-loja`.
+
+### Limitações do plano free (importante)
+
+- **O Postgres free expira em 30 dias** e depois tem 14 dias de carência antes de
+  ser apagado. Para produção, suba o banco para um plano pago antes do vencimento.
+- O Web Service hiberna após 15 min sem tráfego; a primeira requisição leva ~1 min.
+- O filesystem é efêmero: uploads precisam de storage externo (R2/B2/MinIO).
+- Portas SMTP (25/465/587) são bloqueadas no plano free.
+
 
 ## 🔗 Endpoints principais
 | Método | Rota | Descrição |
