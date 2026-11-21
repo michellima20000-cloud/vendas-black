@@ -4,8 +4,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Role } from '@prisma/client';
+import { Role, type Store } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
+import { CACHE_TTL, cacheGet, cacheKey, cacheSet } from '../cache/redis-cache';
 import { CreateStoreDto } from './dto/create-store.dto';
 import { UpdateStoreDto } from './dto/update-store.dto';
 import { UpdateStoreThemeDto } from './dto/update-store-theme.dto';
@@ -15,6 +16,10 @@ export class StoresService {
   constructor(private prisma: PrismaService) {}
 
   async findBySlug(slug: string) {
+    const key = cacheKey('store', slug);
+    const cached = await cacheGet<Store>(key);
+    if (cached) return cached;
+
     const store = await this.prisma.store.findUnique({
       where: { slug },
       include: {
@@ -26,6 +31,7 @@ export class StoresService {
     if (!store || !store.isActive) {
       throw new NotFoundException('Loja não encontrada');
     }
+    await cacheSet(key, store, CACHE_TTL.store);
     return store;
   }
 

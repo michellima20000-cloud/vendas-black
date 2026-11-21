@@ -5,9 +5,14 @@ import { ConfigService } from '@nestjs/config';
 import * as compression from 'compression';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
+import { initRedisCache } from './cache/redis-cache';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Cache Redis opcional (env REDIS_URL). Sem env ou fora do ar, a API segue
+  // consultando o Postgres normalmente — nunca trava por causa do Redis.
+  initRedisCache();
 
   const config = app.get(ConfigService);
   const port = config.get<number>('PORT', 3001);

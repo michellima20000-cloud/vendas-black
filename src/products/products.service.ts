@@ -3,11 +3,39 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { createHash } from 'node:crypto';
+import type { Category } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
+import { CACHE_TTL, cacheGet, cacheKey, cacheSet } from '../cache/redis-cache';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+
+export interface PublicProductsPage {
+  data: any[];
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
+}
+
+/** Chave do cache da lista pública: slug + filtros normalizados (em hash). */
+function publicProductsKey(
+  storeSlug: string,
+  opts: { page?: number; limit?: number; category?: string; search?: string },
+): string {
+  const normalized = Object.entries(opts)
+    .filter(([, value]) => value !== undefined && value !== '')
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([field, value]) => `${field}=${String(value).trim().toLowerCase()}`)
+    .join('&');
+  const fingerprint = createHash('sha256')
+    .update(normalized || 'default')
+    .digest('hex')
+    .slice(0, 20);
+  return cacheKey('products', storeSlug, fingerprint);
+}
 
 @Injectable()
 export class ProductsService {
@@ -17,6 +45,10 @@ export class ProductsService {
     storeSlug: string,
     opts: { page?: number; limit?: number; category?: string; search?: string },
   ) {
+    const key = publicProductsKey(storeSlug, opts);
+    const cached = await cacheGet<PublicProductsPage>(key);
+    if (cached) return cached;
+
     const { page = 1, limit = 12, category, search } = opts;
     const store = await this.prisma.store.findUnique({ where: { slug: storeSlug } });
     if (!store || !store.isActive) {
@@ -38,7 +70,15 @@ export class ProductsService {
       }),
       this.prisma.product.count({ where }),
     ]);
-    return { data: products, total, page, limit, pages: Math.ceil(total / limit) };
+    const result = {
+      data: products,
+      total,
+      page,
+      limit,
+      pages: Math.ceil(total / limit),
+    };
+    await cacheSet(key, result, CACHE_TTL.products);
+    return result;
   }
 
   async findOne(id: string) {
@@ -145,11 +185,19 @@ export class ProductsService {
   }
 
   async findCategories(storeSlug: string) {
+    const key = cacheKey('categories', storeSlug);
+    const cached = await cacheGet<Category[]>(key);
+    if (cached) return cached;
+
     const store = await this.prisma.store.findUnique({ where: { slug: storeSlug } });
     if (!store || !store.isActive) {
       throw new NotFoundException('Loja não encontrada');
     }
-    return this.prisma.category.findMany({ where: { storeId: store.id } });
+    const categories = await this.prisma.category.findMany({
+      where: { storeId: store.id },
+    });
+    await cacheSet(key, categories, CACHE_TTL.categories);
+    return categories;
   }
 
   async findMyCategories(ownerId: string) {
