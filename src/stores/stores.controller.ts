@@ -36,11 +36,13 @@ export class StoresController {
     return this.storesService.findBySlug(slug);
   }
 
+  // Sem @Roles: qualquer usuário autenticado pode perguntar se tem loja.
+  // Quem ainda não tem loja recebe 404 (e não 403), para o painel mostrar o
+  // formulário de criação em vez de um erro de permissão.
   @Get('mine')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.STORE_OWNER)
+  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Minha loja' })
+  @ApiOperation({ summary: 'Minha loja (404 quando o usuário ainda não tem loja)' })
   async myStore(@Request() req) {
     return this.storesService.findByOwner(req.user.id);
   }

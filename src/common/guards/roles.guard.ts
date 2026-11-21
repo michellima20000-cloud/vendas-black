@@ -25,7 +25,9 @@ export class RolesGuard implements CanActivate {
     if (!user) throw new UnauthorizedException();
 
     if (!requiredRoles.includes(user.role)) {
-      throw new ForbiddenException('Acesso permitido somente aos roles indicados');
+      throw new ForbiddenException(
+        'Você não tem permissão para realizar esta ação',
+      );
     }
 
     return true;
