@@ -58,14 +58,15 @@ $env:RENDER_API_KEY = "rnd_xxxxxxxx"
 
 O script é idempotente: se o banco/serviço já existirem, ele reaproveita, atualiza
 as variáveis e redeploya. Ele configura `NODE_ENV`, `JWT_SECRET`, `FRONTEND_URL`
-e `DATABASE_URL` automaticamente. Para upload de imagens, defina as variáveis
-`MINIO_*` no ambiente antes de rodar (veja `.env.example`).
+e `DATABASE_URL` automaticamente. Para upload de imagens, defina
+`BLOB_READ_WRITE_TOKEN` (Vercel Blob, produção) ou as variáveis `MINIO_*`
+(dev local) — veja `.env.example`.
 
 ### Opção 2 — Blueprint (dashboard)
 
 1. No Render, escolha **New → Blueprint** e aponte para este repositório.
 2. Preencha `FRONTEND_URL` com a URL do front publicado (ex.: `https://vendas-front.onrender.com`).
-3. Preencha as variáveis `MINIO_*` se for usar upload de imagens (MinIO, Cloudflare R2, Backblaze B2 etc.). Sem elas a API sobe, mas o upload falha.
+3. Preencha `BLOB_READ_WRITE_TOKEN` (Vercel Blob) ou as variáveis `MINIO_*` (MinIO, Cloudflare R2, Backblaze B2 etc.) se for usar upload de imagens. Sem elas a API sobe, mas o upload responde 503 com mensagem clara.
 4. O health check deve ser `GET /api/v1/health/live`.
 
 **Serviço manual (Docker):**
@@ -94,7 +95,7 @@ O banco começa vazio. Crie a primeira loja pela API:
 - **O Postgres free expira em 30 dias** e depois tem 14 dias de carência antes de
   ser apagado. Para produção, suba o banco para um plano pago antes do vencimento.
 - O Web Service hiberna após 15 min sem tráfego; a primeira requisição leva ~1 min.
-- O filesystem é efêmero: uploads precisam de storage externo (R2/B2/MinIO).
+- O filesystem é efêmero: uploads precisam de storage externo (Vercel Blob, R2/B2/MinIO).
 - Portas SMTP (25/465/587) são bloqueadas no plano free.
 
 
