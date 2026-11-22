@@ -23,6 +23,43 @@ describe('CreateOrderDto', () => {
     expect(await validate(dto)).toHaveLength(0);
   });
 
+  it('treats empty optional strings as absent instead of failing validation', async () => {
+    const dto = plainToInstance(CreateOrderDto, {
+      storeSlug: 'loja',
+      items: [{ productId: 'product-1', quantity: 1, variation: '' }],
+      couponCode: '',
+      notes: '',
+      address: {
+        street: 'Rua A',
+        number: '10',
+        complement: '',
+        district: 'Centro',
+        city: 'São Paulo',
+        state: 'SP',
+        zipCode: '01001-000',
+      },
+    });
+
+    expect(await validate(dto)).toHaveLength(0);
+    expect(dto.items[0].variation).toBeUndefined();
+    expect(dto.couponCode).toBeUndefined();
+    expect(dto.notes).toBeUndefined();
+    expect(dto.address.complement).toBeUndefined();
+  });
+
+  it('keeps non-empty optional strings intact', async () => {
+    const dto = plainToInstance(CreateOrderDto, {
+      storeSlug: 'loja',
+      items: [{ productId: 'product-1', quantity: 1 }],
+      couponCode: 'PROMO10',
+      notes: 'Entregar após as 18h',
+    });
+
+    expect(await validate(dto)).toHaveLength(0);
+    expect(dto.couponCode).toBe('PROMO10');
+    expect(dto.notes).toBe('Entregar após as 18h');
+  });
+
   it('rejects an unsupported payment method', async () => {
     const dto = plainToInstance(CreateOrderDto, {
       storeSlug: 'loja',

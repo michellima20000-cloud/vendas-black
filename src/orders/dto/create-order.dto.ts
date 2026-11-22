@@ -13,6 +13,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PaymentMethod } from '@prisma/client';
+import { OptionalText } from '../../common/decorators/optional-text.decorator';
 
 export class OrderItemDto {
   @ApiProperty()
@@ -27,9 +28,7 @@ export class OrderItemDto {
   quantity: number;
 
   @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  @Length(1, 120)
+  @OptionalText(1, 120)
   variation?: string;
 }
 
@@ -45,9 +44,7 @@ export class OrderAddressDto {
   number: string;
 
   @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  @Length(1, 120)
+  @OptionalText(1, 120)
   complement?: string;
 
   @ApiProperty()
@@ -85,15 +82,11 @@ export class CreateOrderDto {
   items: OrderItemDto[];
 
   @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  @Length(1, 64)
+  @OptionalText(1, 64)
   couponCode?: string;
 
   @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  @Length(1, 1000)
+  @OptionalText(1, 1000)
   notes?: string;
 
   @ApiPropertyOptional({ enum: PaymentMethod })

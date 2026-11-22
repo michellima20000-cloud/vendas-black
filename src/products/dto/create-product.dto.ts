@@ -11,6 +11,7 @@ import {
   Max,
   Min,
 } from 'class-validator';
+import { OptionalText } from '../../common/decorators/optional-text.decorator';
 
 export class CreateProductDto {
   @ApiProperty()
@@ -19,9 +20,7 @@ export class CreateProductDto {
   name: string;
 
   @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  @Length(1, 5000)
+  @OptionalText(1, 5000)
   description?: string;
 
   @ApiProperty()
@@ -59,9 +58,7 @@ export class CreateProductDto {
   installments?: number;
 
   @ApiPropertyOptional()
-  @IsString()
-  @Length(1, 64)
-  @IsOptional()
+  @OptionalText(1, 64)
   categoryId?: string;
 
   @ApiPropertyOptional()
