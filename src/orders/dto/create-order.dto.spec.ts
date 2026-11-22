@@ -28,7 +28,7 @@ describe('CreateOrderDto', () => {
       storeSlug: 'loja',
       items: [{ productId: 'product-1', quantity: 1, variation: '' }],
       couponCode: '',
-      notes: '',
+      notes: '   ',
       address: {
         street: 'Rua A',
         number: '10',
@@ -108,5 +108,31 @@ describe('CreateOrderDto', () => {
 
     const errors = await validate(dto);
     expect(errors.some((error) => error.property === 'items')).toBe(true);
+  });
+
+  it('treats empty optional strings (notes/complement/coupon) as not informed', async () => {
+    // Formulários HTML enviam "" quando o campo fica em branco; o DTO precisa
+    // aceitar isso em vez de falhar com "must be longer than or equal to 1".
+    const dto = plainToInstance(CreateOrderDto, {
+      storeSlug: 'loja',
+      items: [{ productId: 'product-1', quantity: 1, variation: '' }],
+      notes: '',
+      couponCode: '',
+      address: {
+        street: 'Rua A',
+        number: '10',
+        complement: '',
+        district: 'Centro',
+        city: 'São Paulo',
+        state: 'SP',
+        zipCode: '01001-000',
+      },
+    });
+
+    expect(dto.notes).toBeUndefined();
+    expect(dto.couponCode).toBeUndefined();
+    expect(dto.items[0].variation).toBeUndefined();
+    expect(dto.address?.complement).toBeUndefined();
+    expect(await validate(dto)).toHaveLength(0);
   });
 });

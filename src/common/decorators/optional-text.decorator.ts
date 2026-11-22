@@ -10,12 +10,17 @@ import { IsOptional, IsString, Length } from 'class-validator';
  * `@Length(1, ...)` e derruba o pedido com erros como "notes must be longer
  * than or equal to 1 characters".
  *
- * Aqui a string vazia vira `undefined` antes da validação: campo não
- * informado, guardado como `null` no banco.
+ * Aqui a string vazia (ou só espaços) vira `undefined` antes da validação —
+ * e o valor informado é aparado: campo não informado, guardado como `null`
+ * no banco.
  */
 export function OptionalText(minLength: number, maxLength: number) {
   return applyDecorators(
-    Transform(({ value }) => (value === '' ? undefined : value)),
+    Transform(({ value }) => {
+      if (typeof value !== 'string') return value;
+      const trimmed = value.trim();
+      return trimmed === '' ? undefined : trimmed;
+    }),
     IsOptional(),
     IsString(),
     Length(minLength, maxLength),

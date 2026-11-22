@@ -1,5 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsHexColor, IsOptional, IsString, Length } from 'class-validator';
+import { IsHexColor, IsOptional } from 'class-validator';
+import { OptionalText } from '../../common/decorators/optional-text.decorator';
 
 export class UpdateStoreThemeDto {
   @ApiPropertyOptional({ example: '#B07A85' })
@@ -18,14 +19,10 @@ export class UpdateStoreThemeDto {
   bgColor?: string;
 
   @ApiPropertyOptional({ example: 'Playfair Display' })
-  @IsOptional()
-  @IsString()
-  @Length(1, 80)
+  @OptionalText(1, 80)
   fontTitle?: string;
 
   @ApiPropertyOptional({ example: 'Nunito' })
-  @IsOptional()
-  @IsString()
-  @Length(1, 80)
+  @OptionalText(1, 80)
   fontBody?: string;
 }
